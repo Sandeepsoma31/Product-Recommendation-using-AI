@@ -1,34 +1,28 @@
 from bs4 import BeautifulSoup
 import pandas as pd
+import numpy as np
 import requests
 
-url = "https://www.flipkart.com/search?q=phones&otracker=search&otracker1=search&marketplace=FLIPKART&as-show=on&as=off"
+# url = "https://www.flipkart.com/search?q=phones&otracker=search&otracker1=search&marketplace=FLIPKART&as-show=on&as=off"
 
-HEADERS = ({'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36', 'Accept-Language': 'en-US, en;q=0.5'})
+# link = links[0].get('href')
 
-wpage = requests.get(url,headers=HEADERS)
+# prd_list = "https://www.flipkart.com"+link
 
-soup = BeautifulSoup(wpage.content,"html.parser")
+# new_wpage = requests.get(prd_list,headers=HEADERS)
+# new_soup = BeautifulSoup(new_wpage.content,"html.parser")
 
-links = soup.find_all("a", attrs = {'rel':'noopener noreferrer'})
-link = links[0].get('href')
+# pd_title = new_soup.find("span",attrs={'class':'VU-ZEz'}).text.strip()
+# print(pd_title)
 
-prd_list = "https://www.flipkart.com"+link
+# pd_price = new_soup.find("div",attrs={'class':'Nx9bqj CxhGGd'}).text.strip()
+# print(pd_price)
 
-new_wpage = requests.get(prd_list,headers=HEADERS)
-new_soup = BeautifulSoup(new_wpage.content,"html.parser")
+# pd_rating = new_soup.find("div",attrs={'class':'XQDdHH'}).text.strip()
+# print(pd_rating)
 
-pd_title = new_soup.find("span",attrs={'class':'VU-ZEz'}).text.strip()
-print(pd_title)
-
-pd_price = new_soup.find("div",attrs={'class':'Nx9bqj CxhGGd'}).text.strip()
-print(pd_price)
-
-pd_rating = new_soup.find("div",attrs={'class':'XQDdHH'}).text.strip()
-print(pd_rating)
-
-pd_reviews = new_soup.find("span",attrs={'class':'hG7V+4'}).next_sibling.text.strip()
-print(pd_reviews)
+# pd_reviews = new_soup.find("span",attrs={'class':'hG7V+4'}).next_sibling.text.strip()
+# print(pd_reviews)
 
 def get_productTitle(soup):
     
@@ -65,3 +59,40 @@ def get_productReview(soup):
         product_review = "Error with Product review fetch"
         
     return product_review
+
+if __name__ == '__main__':
+    
+    url = "https://www.flipkart.com/search?q=phones&otracker=search&otracker1=search&marketplace=FLIPKART&as-show=on&as=off"
+    
+    HEADERS = ({'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36', 'Accept-Language': 'en-US, en;q=0.5'})
+    
+    wpage = requests.get(url,headers=HEADERS)
+    
+    soup = BeautifulSoup(wpage.content,"html.parser")
+    
+    links = soup.find_all("a", attrs = {'rel':'noopener noreferrer'})
+    
+    links_arr = []
+    
+    for link in links:
+        links_arr.append(link.get('href'))
+        
+    pdt = {"title":[], "price":[], "rating":[], "reviews":[]}
+    
+    for link in links_arr:
+        new_webpage = requests.get("https://www.flipkart.com" + link, headers=HEADERS)
+        
+        new_soup = BeautifulSoup(new_webpage.content, "html.parser")
+        
+        pdt["title"].append(get_productTitle(new_soup))
+        pdt["price"].append(get_productPrice(new_soup))
+        pdt["rating"].append(get_productRating(new_soup))
+        pdt["reviews"].append(get_productReview(new_soup))
+    
+    flp = pd.DataFrame.from_dict(pdt)
+    flp['title'].replace('', np.nan, inplace=True)
+    flp = flp.dropna(subset=['title'])
+    flp.to_csv("filpkart_prduct_details.csv", header=True, index=False)
+    
+    print(flp)
+    
